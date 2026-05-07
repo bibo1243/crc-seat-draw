@@ -1,4 +1,4 @@
-const STORAGE_KEY = "crc-seat-draw-state-v2";
+const STORAGE_KEY = "crc-seat-draw-state-v3";
 const TABLE_COUNT = 6;
 const SEATS_PER_TABLE = 8;
 const MAX_PEOPLE = TABLE_COUNT * SEATS_PER_TABLE;
@@ -67,7 +67,7 @@ const officialRoster = [
   { name: "熊小蓮", unit: "foundation" },
   { name: "李鳳翎", unit: "foundation" },
   { name: "徐銘澤", unit: "foundation" },
-  { name: "陳淑錡", unit: "foundation" },
+  { name: "吳秉熹", unit: "foundation" },
   { name: "林港博", unit: "foundation" },
   { name: "劉春燕", unit: "foundation" },
   { name: "陸廷瑋", unit: "foundation" },
