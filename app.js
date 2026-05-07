@@ -610,6 +610,20 @@ function renderRosterPicker() {
   rosterPicker.appendChild(group);
 }
 
+function tryDrawPerson(person) {
+  const assigned = person.isTemporary ? assignTemporarySingle(person) : assignSingle(person);
+  if (!assigned) {
+    setMessage("目前沒有符合這個單位限制的空位，請改選單位或重新抽籤全部。", "warn");
+    return null;
+  }
+
+  state.people.push(assigned);
+  latestDrawnId = assigned.id;
+  render();
+  setMessage(`${assigned.name}${assigned.isTemporary ? "（臨時新增）" : ""} 抽到第 ${assigned.tableId} 組。`, "good");
+  return assigned;
+}
+
 rosterPicker.addEventListener("click", (event) => {
   const tab = event.target.closest("[data-unit]");
   if (tab && !isAnimating) {
@@ -620,8 +634,19 @@ rosterPicker.addEventListener("click", (event) => {
 
   const button = event.target.closest("[data-name]");
   if (!button || isAnimating) return;
-  nameInput.value = button.dataset.name;
-  nameInput.focus();
+  if (state.people.some((person) => normalizeName(person.name) === normalizeName(button.dataset.name))) {
+    setMessage("這個姓名已經抽過籤。", "warn");
+    return;
+  }
+
+  const rosterPerson = rosterPersonByName(button.dataset.name);
+  if (!rosterPerson) return;
+  tryDrawPerson({
+    id: `official-${rosterPerson.name}`,
+    ...rosterPerson,
+    tableId: null,
+    seatIndex: null,
+  });
 });
 
 drawForm.addEventListener("submit", (event) => {
@@ -655,17 +680,9 @@ drawForm.addEventListener("submit", (event) => {
     return;
   }
 
-  const assigned = person.isTemporary ? assignTemporarySingle(person) : assignSingle(person);
-  if (!assigned) {
-    setMessage("目前沒有符合這個單位限制的空位，請改選單位或重新抽籤全部。", "warn");
-    return;
-  }
-
-  state.people.push(assigned);
-  latestDrawnId = assigned.id;
+  const assigned = tryDrawPerson(person);
+  if (!assigned) return;
   nameInput.value = "";
-  render();
-  setMessage(`${assigned.name}${assigned.isTemporary ? "（臨時新增）" : ""} 抽到第 ${assigned.tableId} 組。`, "good");
 });
 
 simulateBtn.addEventListener("click", async () => {
