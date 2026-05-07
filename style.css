@@ -76,9 +76,9 @@ button:hover {
     "picker"
     "actions";
   gap: 10px;
-  width: min(720px, 44vw);
-  min-width: 620px;
-  padding: 14px;
+  width: min(440px, 28vw);
+  min-width: 360px;
+  padding: 12px;
   transform: translate(-50%, -50%);
   overflow: visible;
   border: 1px solid var(--line);
@@ -211,15 +211,43 @@ h1 {
 .roster-picker {
   grid-area: picker;
   display: grid;
+  gap: 8px;
+}
+
+.picker-tabs {
+  display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
+  gap: 6px;
+}
+
+.picker-tab {
+  min-height: 34px;
+  padding: 4px 5px;
+  border-radius: 7px;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.picker-tab.erjia {
+  background: var(--erjia-soft);
+}
+
+.picker-tab.shaojia {
+  background: var(--shaojia-soft);
+}
+
+.picker-tab.foundation {
+  background: var(--foundation-soft);
+}
+
+.picker-tab.active {
+  border-color: var(--accent);
+  box-shadow: inset 0 0 0 2px rgba(40, 111, 108, 0.22);
 }
 
 .picker-group {
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr);
   gap: 6px;
-  min-height: 0;
   padding: 8px;
   border-radius: 8px;
 }

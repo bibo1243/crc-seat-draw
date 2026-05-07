@@ -105,6 +105,7 @@ const clearBtn = document.querySelector("#clearBtn");
 let state = loadState();
 let isAnimating = false;
 let latestDrawnId = null;
+let activePickerUnit = "erjia";
 
 function loadState() {
   try {
@@ -569,33 +570,54 @@ function renderRosterPicker() {
   const drawnNames = new Set(state.people.map((person) => person.name));
   rosterPicker.innerHTML = "";
 
+  const tabs = document.createElement("div");
+  tabs.className = "picker-tabs";
+
   units.forEach((unit) => {
     const people = officialRoster.filter((person) => person.unit === unit.id && !drawnNames.has(person.name));
-    const group = document.createElement("section");
-    group.className = `picker-group ${unit.className}`;
-    group.innerHTML = `
-      <div class="picker-head">
-        <span>${unit.label}</span>
-        <strong>${people.length}</strong>
-      </div>
-      <div class="picker-list"></div>
-    `;
-
-    const list = group.querySelector(".picker-list");
-    people.forEach((person) => {
-      const button = document.createElement("button");
-      button.type = "button";
-      button.className = "picker-name";
-      button.dataset.name = person.name;
-      button.textContent = person.name;
-      list.appendChild(button);
-    });
-
-    rosterPicker.appendChild(group);
+    const tab = document.createElement("button");
+    tab.type = "button";
+    tab.className = `picker-tab ${unit.className}${activePickerUnit === unit.id ? " active" : ""}`;
+    tab.dataset.unit = unit.id;
+    tab.textContent = `${unit.shortLabel} ${people.length}`;
+    tabs.appendChild(tab);
   });
+
+  rosterPicker.appendChild(tabs);
+
+  const unit = unitById(activePickerUnit);
+  const people = officialRoster.filter((person) => person.unit === activePickerUnit && !drawnNames.has(person.name));
+  const group = document.createElement("section");
+  group.className = `picker-group ${unit.className}`;
+  group.innerHTML = `
+    <div class="picker-head">
+      <span>${unit.label}</span>
+      <strong>${people.length}</strong>
+    </div>
+    <div class="picker-list"></div>
+  `;
+
+  const list = group.querySelector(".picker-list");
+  people.forEach((person) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "picker-name";
+    button.dataset.name = person.name;
+    button.textContent = person.name;
+    list.appendChild(button);
+  });
+
+  rosterPicker.appendChild(group);
 }
 
 rosterPicker.addEventListener("click", (event) => {
+  const tab = event.target.closest("[data-unit]");
+  if (tab && !isAnimating) {
+    activePickerUnit = tab.dataset.unit;
+    renderRosterPicker();
+    return;
+  }
+
   const button = event.target.closest("[data-name]");
   if (!button || isAnimating) return;
   nameInput.value = button.dataset.name;
