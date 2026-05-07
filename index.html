@@ -7,48 +7,52 @@
     <link rel="stylesheet" href="./style.css" />
   </head>
   <body>
-    <main class="app-shell">
-      <section class="control-panel" aria-label="抽籤控制面板">
-        <div class="title-block">
-          <p class="eyebrow">115.05.08 CRC</p>
-          <h1>座位抽籤</h1>
-        </div>
-
-        <form id="drawForm" class="draw-form">
-          <label class="field">
-            <span>臨時新增</span>
-            <input id="nameInput" type="text" autocomplete="name" list="nameList" placeholder="沒有名字時才輸入" />
-            <datalist id="nameList"></datalist>
-          </label>
-
-          <button class="primary-action" type="submit">臨時抽籤</button>
-        </form>
-
-        <div id="message" class="message visually-hidden" role="status" aria-live="polite" hidden></div>
-
-        <section id="rosterPicker" class="roster-picker" aria-label="依單位選擇姓名"></section>
-
-        <section class="stats-panel" aria-label="目前人數">
-          <div class="stats-head">
-            <span>最近抽出</span>
-            <strong id="totalCount">0 / 49</strong>
+    <main class="page-shell">
+      <section class="app-shell">
+        <section class="control-panel" aria-label="抽籤控制面板">
+          <div class="title-block">
+            <p class="eyebrow">115.05.08 CRC</p>
+            <h1>座位抽籤</h1>
           </div>
-          <div class="unit-counts" id="unitCounts"></div>
-          <div class="roster" id="roster"></div>
+
+          <form id="drawForm" class="draw-form">
+            <label class="field">
+              <span>臨時新增</span>
+              <input id="nameInput" type="text" autocomplete="name" list="nameList" placeholder="沒有名字時才輸入" />
+              <datalist id="nameList"></datalist>
+            </label>
+
+            <button class="primary-action" type="submit">臨時抽籤</button>
+          </form>
+
+          <div id="message" class="message visually-hidden" role="status" aria-live="polite" hidden></div>
+
+          <section id="rosterPicker" class="roster-picker" aria-label="依單位選擇姓名"></section>
+
+          <section class="stats-panel" aria-label="目前人數">
+            <div class="stats-head">
+              <span>最近抽出</span>
+              <strong id="totalCount">0 / 49</strong>
+            </div>
+            <div class="unit-counts" id="unitCounts"></div>
+            <div class="roster" id="roster"></div>
+          </section>
+        </section>
+
+        <section class="seating-area" aria-label="座位圖">
+          <div class="front-table">
+            <span>主持 / 前方</span>
+          </div>
+          <div id="tables" class="tables-grid"></div>
         </section>
       </section>
 
-      <section class="seating-area" aria-label="座位圖">
-        <div class="front-table">
-          <span>主持 / 前方</span>
+      <div class="page-actions" aria-label="網站底部工具列">
+        <div class="action-grid">
+          <button id="simulateBtn" type="button">快速排座位</button>
+          <button id="rerollBtn" type="button">重新抽籤全部</button>
+          <button id="clearBtn" type="button">清空資料</button>
         </div>
-        <div id="tables" class="tables-grid"></div>
-      </section>
-
-      <div class="action-grid">
-        <button id="simulateBtn" type="button">快速排座位</button>
-        <button id="rerollBtn" type="button">重新抽籤全部</button>
-        <button id="clearBtn" type="button">清空資料</button>
       </div>
     </main>
 
