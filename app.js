@@ -1,4 +1,4 @@
-const STORAGE_KEY = "crc-seat-draw-state-v4";
+const STORAGE_KEY = "crc-seat-draw-state-v5";
 const TABLE_CAPACITIES = [8, 8, 8, 8, 8, 9];
 const TABLE_COUNT = TABLE_CAPACITIES.length;
 const MAX_PEOPLE = TABLE_CAPACITIES.reduce((total, capacity) => total + capacity, 0);
@@ -145,16 +145,50 @@ function rosterPersonByName(name) {
   return officialRoster.find((person) => normalizeName(person.name) === normalized);
 }
 
+function parseTemporaryUnit(input) {
+  const normalized = normalizeName(input || "");
+  if (["1", "兒家", "兒家教保組"].includes(normalized)) return "erjia";
+  if (["2", "少家", "少家教保組"].includes(normalized)) return "shaojia";
+  if (["3", "基金會", "諮商所", "基金會+諮商所", "基金/諮商"].includes(normalized)) return "foundation";
+  return null;
+}
+
+function createTemporaryPerson(name) {
+  const confirmed = window.confirm(
+    `正式名單中找不到「${name}」。\n是否以臨時人員加入，並為他增加一個臨時座位？`,
+  );
+  if (!confirmed) return null;
+
+  const unitInput = window.prompt(
+    "請輸入臨時人員單位：\n1 兒家教保組\n2 少家教保組\n3 基金會+諮商所",
+    "3",
+  );
+  const unit = parseTemporaryUnit(unitInput);
+  if (!unit) {
+    setMessage("臨時人員需要選擇有效單位：1、2、3。", "warn");
+    return null;
+  }
+
+  return {
+    id: `temporary-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+    name,
+    unit,
+    isTemporary: true,
+    tableId: null,
+    seatIndex: null,
+  };
+}
+
 function fixedLeaderForTable(tableId) {
   return officialRoster.find((person) => person.preferredTableId === tableId);
 }
 
-function capacityForTable(tableId) {
+function baseCapacityForTable(tableId) {
   return TABLE_CAPACITIES[tableId - 1];
 }
 
-function seatIndicesForTable(tableId) {
-  return Array.from({ length: capacityForTable(tableId) }, (_, index) => index);
+function seatIndicesForCapacity(capacity) {
+  return Array.from({ length: capacity }, (_, index) => index);
 }
 
 function shuffle(items) {
@@ -169,7 +203,7 @@ function shuffle(items) {
 function emptyTableStats() {
   return Array.from({ length: TABLE_COUNT }, (_, tableIndex) => ({
     tableId: tableIndex + 1,
-    capacity: capacityForTable(tableIndex + 1),
+    capacity: baseCapacityForTable(tableIndex + 1),
     total: 0,
     byUnit: Object.fromEntries(units.map((unit) => [unit.id, 0])),
     usedSeats: new Set(),
@@ -185,6 +219,13 @@ function buildTableStats(people = state.people) {
     table.byUnit[person.unit] += 1;
     table.usedSeats.add(person.seatIndex);
   });
+
+  stats.forEach((table) => {
+    const temporaryCount = people.filter((person) => person.tableId === table.tableId && person.isTemporary).length;
+    const highestSeat = Math.max(-1, ...people.filter((person) => person.tableId === table.tableId).map((person) => person.seatIndex));
+    table.capacity = Math.max(baseCapacityForTable(table.tableId) + temporaryCount, highestSeat + 1);
+  });
+
   return stats;
 }
 
@@ -195,11 +236,31 @@ function firstFreeSeat(table, person, people = state.people) {
     !people.some((drawnPerson) => drawnPerson.name === leader.name) &&
     person.name !== leader.name;
 
-  const seatIndex = seatIndicesForTable(table.tableId).find((index) => {
+  const seatIndex = seatIndicesForCapacity(table.capacity).find((index) => {
     if (shouldReserveTopSeat && index === 0) return false;
     return !table.usedSeats.has(index);
   });
   return seatIndex ?? -1;
+}
+
+function assignTemporarySingle(person, people = state.people) {
+  const stats = buildTableStats(people).map((table) => ({
+    ...table,
+    capacity: table.capacity + 1,
+  }));
+  const candidates = stats
+    .filter((table) => table.byUnit[person.unit] < 3 && firstFreeSeat(table, person, people) !== -1)
+    .map((table) => ({
+      table,
+      score: table.total + table.byUnit[person.unit] * 12 + Math.random() * 0.7,
+    }))
+    .sort((a, b) => a.score - b.score);
+
+  if (!candidates.length) return null;
+
+  const picked = candidates[0].table;
+  const seatIndex = firstFreeSeat(picked, person, people);
+  return { ...person, tableId: picked.tableId, seatIndex };
 }
 
 function assignSingle(person, people = state.people) {
@@ -288,7 +349,7 @@ function assignByStrictQuotas(people) {
 
   const assigned = [];
   const seatsByTable = Array.from({ length: TABLE_COUNT }, (_, tableIndex) =>
-    shuffle(seatIndicesForTable(tableIndex + 1).filter((seatIndex) => seatIndex !== 0)),
+    shuffle(seatIndicesForCapacity(baseCapacityForTable(tableIndex + 1)).filter((seatIndex) => seatIndex !== 0)),
   );
   const fixedPeople = people.filter((person) => person.preferredTableId);
 
@@ -326,6 +387,20 @@ function assignRoster(people) {
     tableId: null,
     seatIndex: null,
   }));
+  const temporaryPeople = cleanPeople.filter((person) => person.isTemporary);
+  const regularPeople = cleanPeople.filter((person) => !person.isTemporary);
+
+  if (temporaryPeople.length && canUseStrictQuotas(regularPeople)) {
+    const strictResult = assignByStrictQuotas(regularPeople);
+    if (strictResult) {
+      const assigned = [...strictResult];
+      shuffle(temporaryPeople).forEach((person) => {
+        const picked = assignTemporarySingle(person, assigned);
+        if (picked) assigned.push(picked);
+      });
+      return assigned;
+    }
+  }
 
   if (canUseStrictQuotas(cleanPeople)) {
     const strictResult = assignByStrictQuotas(cleanPeople);
@@ -340,7 +415,7 @@ function assignRoster(people) {
 
   const assigned = [];
   ordered.forEach((person) => {
-    const picked = assignSingle(person, assigned);
+    const picked = person.isTemporary ? assignTemporarySingle(person, assigned) : assignSingle(person, assigned);
     if (picked) assigned.push(picked);
   });
 
@@ -353,16 +428,15 @@ function setMessage(text, type = "") {
 }
 
 function statusText() {
+  const temporaryCount = state.people.filter((person) => person.isTemporary).length;
+  const officialDrawnCount = state.people.length - temporaryCount;
+
   if (state.people.length === 0) return "請輸入姓名後抽籤，或先用快速排座位。";
-  if (state.people.length < MAX_PEOPLE) {
-    return `已抽 ${state.people.length} 人。正式名單共 ${MAX_PEOPLE} 人，系統會依單位與主管組別分散座位。`;
+  if (officialDrawnCount < MAX_PEOPLE) {
+    return `已抽正式名單 ${officialDrawnCount}/${MAX_PEOPLE} 人${temporaryCount ? `，臨時新增 ${temporaryCount} 人` : ""}。`;
   }
 
-  if (!canUseStrictQuotas(state.people)) {
-    return "目前已滿，但三個單位的人數需各在 12-18 人之間，才能保證每桌每單位 2-3 人。";
-  }
-
-  return `已完成 ${MAX_PEOPLE} 人排座，每桌每單位皆為 2-3 人。`;
+  return `已完成正式名單 ${MAX_PEOPLE} 人排座${temporaryCount ? `，另有臨時新增 ${temporaryCount} 人` : ""}。`;
 }
 
 function render() {
@@ -392,7 +466,9 @@ function renderTables() {
     const leftStack = document.createElement("div");
     leftStack.className = "seat-stack left";
     [1, 2, 3].forEach((seatIndex) => leftStack.appendChild(createSeat(bySeat.get(seatIndex), seatIndex)));
-    if (table.capacity > 8) leftStack.appendChild(createSeat(bySeat.get(8), 8));
+    for (let seatIndex = 8; seatIndex < table.capacity; seatIndex += 1) {
+      leftStack.appendChild(createSeat(bySeat.get(seatIndex), seatIndex));
+    }
     card.appendChild(leftStack);
 
     const tableBox = document.createElement("div");
@@ -440,9 +516,10 @@ function createSeat(person, seatIndex, single = false) {
 
   const unit = unitById(person.unit);
   seat.classList.add("filled", unit.className);
+  if (person.isTemporary) seat.classList.add("temporary");
   if (person.id === latestDrawnId) seat.classList.add("latest");
-  seat.textContent = person.name;
-  seat.title = `${person.name} - ${unit.label}`;
+  seat.textContent = person.isTemporary ? `${person.name} 臨` : person.name;
+  seat.title = `${person.name} - ${unit.label}${person.isTemporary ? " - 臨時新增" : ""}`;
   return seat;
 }
 
@@ -498,32 +575,28 @@ drawForm.addEventListener("submit", (event) => {
     return;
   }
 
-  if (!rosterPerson) {
-    setMessage("正式名單中找不到這個姓名，請確認是否輸入完整姓名。", "warn");
-    nameInput.focus();
-    return;
-  }
-
-  if (state.people.length >= MAX_PEOPLE) {
-    setMessage(`座位已滿 ${MAX_PEOPLE} 人，請先移除或清空資料。`, "warn");
-    return;
-  }
-
-  if (state.people.some((person) => person.name === rosterPerson.name)) {
+  if (state.people.some((person) => normalizeName(person.name) === normalizeName(name))) {
     setMessage("這個姓名已經抽過籤。", "warn");
     return;
   }
 
-  const person = {
-    id: `official-${rosterPerson.name}`,
-    ...rosterPerson,
-    tableId: null,
-    seatIndex: null,
-  };
+  const person = rosterPerson
+    ? {
+        id: `official-${rosterPerson.name}`,
+        ...rosterPerson,
+        tableId: null,
+        seatIndex: null,
+      }
+    : createTemporaryPerson(name);
 
-  const assigned = assignSingle(person);
+  if (!person) {
+    nameInput.focus();
+    return;
+  }
+
+  const assigned = person.isTemporary ? assignTemporarySingle(person) : assignSingle(person);
   if (!assigned) {
-    setMessage("目前沒有符合這個單位限制的空位，請重新抽籤全部或檢查人數比例。", "warn");
+    setMessage("目前沒有符合這個單位限制的空位，請改選單位或重新抽籤全部。", "warn");
     return;
   }
 
@@ -531,7 +604,7 @@ drawForm.addEventListener("submit", (event) => {
   latestDrawnId = assigned.id;
   nameInput.value = "";
   render();
-  setMessage(`${assigned.name} 抽到第 ${assigned.tableId} 組。`, "good");
+  setMessage(`${assigned.name}${assigned.isTemporary ? "（臨時新增）" : ""} 抽到第 ${assigned.tableId} 組。`, "good");
 });
 
 simulateBtn.addEventListener("click", async () => {

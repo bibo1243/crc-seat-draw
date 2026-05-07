@@ -429,6 +429,11 @@ h1 {
   background: var(--foundation);
 }
 
+.seat.temporary {
+  outline: 2px dashed rgba(32, 33, 36, 0.65);
+  outline-offset: 2px;
+}
+
 .seat.latest {
   animation: draw-pop 420ms ease-out;
   outline: 3px solid rgba(40, 111, 108, 0.3);
