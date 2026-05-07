@@ -69,7 +69,7 @@ button:hover {
 
 .control-panel {
   position: absolute;
-  top: 50%;
+  top: 58%;
   left: 50%;
   z-index: 5;
   display: grid;
