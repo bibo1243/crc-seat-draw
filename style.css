@@ -116,19 +116,6 @@ h1 {
   border-color: var(--accent);
 }
 
-.unit-picker {
-  display: grid;
-  gap: 8px;
-  margin: 0;
-  padding: 0;
-  border: 0;
-}
-
-.unit-picker legend {
-  margin-bottom: 8px;
-  font-weight: 700;
-}
-
 .unit-option {
   display: grid;
   grid-template-columns: 20px 1fr;

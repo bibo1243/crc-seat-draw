@@ -17,24 +17,9 @@
         <form id="drawForm" class="draw-form">
           <label class="field">
             <span>姓名</span>
-            <input id="nameInput" type="text" autocomplete="name" placeholder="輸入夥伴姓名" />
+            <input id="nameInput" type="text" autocomplete="name" list="nameList" placeholder="輸入夥伴姓名" />
+            <datalist id="nameList"></datalist>
           </label>
-
-          <fieldset class="unit-picker">
-            <legend>單位</legend>
-            <label class="unit-option erjia">
-              <input type="radio" name="unit" value="erjia" checked />
-              <span>兒家教保組</span>
-            </label>
-            <label class="unit-option shaojia">
-              <input type="radio" name="unit" value="shaojia" />
-              <span>少家教保組</span>
-            </label>
-            <label class="unit-option foundation">
-              <input type="radio" name="unit" value="foundation" />
-              <span>基金會+諮商所</span>
-            </label>
-          </fieldset>
 
           <button class="primary-action" type="submit">抽籤</button>
         </form>

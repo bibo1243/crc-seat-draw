@@ -1,4 +1,4 @@
-const STORAGE_KEY = "crc-seat-draw-state-v1";
+const STORAGE_KEY = "crc-seat-draw-state-v2";
 const TABLE_COUNT = 6;
 const SEATS_PER_TABLE = 8;
 const MAX_PEOPLE = TABLE_COUNT * SEATS_PER_TABLE;
@@ -24,6 +24,57 @@ const units = [
   },
 ];
 
+const officialRoster = [
+  { name: "廖振杉", unit: "erjia", preferredTableId: 2 },
+  { name: "陳宛妤", unit: "erjia", preferredTableId: 6 },
+  { name: "王淨惠", unit: "erjia" },
+  { name: "許云嘉", unit: "erjia" },
+  { name: "陳亮寧", unit: "erjia" },
+  { name: "張宜芳", unit: "erjia" },
+  { name: "曾婷婷", unit: "erjia" },
+  { name: "李炎輝", unit: "erjia" },
+  { name: "簡采琦", unit: "erjia" },
+  { name: "賴思錡", unit: "erjia" },
+  { name: "廖玟慈", unit: "erjia" },
+  { name: "陳佳怡", unit: "erjia" },
+  { name: "林東美", unit: "erjia" },
+  { name: "賀郁茵", unit: "erjia" },
+  { name: "梁偉培", unit: "erjia" },
+  { name: "王卉蓁", unit: "erjia" },
+  { name: "蕭婷予", unit: "erjia" },
+  { name: "廖慧雯", unit: "shaojia", preferredTableId: 1 },
+  { name: "鍾宜珮", unit: "shaojia", preferredTableId: 5 },
+  { name: "胡少淇", unit: "shaojia" },
+  { name: "蘇盟惠", unit: "shaojia" },
+  { name: "陳昱綸", unit: "shaojia" },
+  { name: "劉宛宣", unit: "shaojia" },
+  { name: "黃歆藝", unit: "shaojia" },
+  { name: "林品亨", unit: "shaojia" },
+  { name: "蔣郡哲", unit: "shaojia" },
+  { name: "郭楷欣", unit: "shaojia" },
+  { name: "吳思函", unit: "shaojia" },
+  { name: "劉婷瑜", unit: "shaojia" },
+  { name: "劉皓任", unit: "shaojia" },
+  { name: "曾雅培", unit: "shaojia" },
+  { name: "陳畇鈞", unit: "shaojia" },
+  { name: "李冠葦", unit: "foundation", preferredTableId: 4 },
+  { name: "楊顗帆", unit: "foundation", preferredTableId: 3 },
+  { name: "林紀騰", unit: "foundation" },
+  { name: "謝秀桃", unit: "foundation" },
+  { name: "白梅芳", unit: "foundation" },
+  { name: "高靜華", unit: "foundation" },
+  { name: "林麗娟", unit: "foundation" },
+  { name: "熊小蓮", unit: "foundation" },
+  { name: "李鳳翎", unit: "foundation" },
+  { name: "徐銘澤", unit: "foundation" },
+  { name: "陳淑錡", unit: "foundation" },
+  { name: "林港博", unit: "foundation" },
+  { name: "劉春燕", unit: "foundation" },
+  { name: "陸廷瑋", unit: "foundation" },
+  { name: "王芊蓉", unit: "foundation" },
+  { name: "王元鼎", unit: "foundation" },
+];
+
 const seatSlots = [
   { key: "top", area: "top" },
   { key: "left-1", area: "left" },
@@ -37,6 +88,7 @@ const seatSlots = [
 
 const drawForm = document.querySelector("#drawForm");
 const nameInput = document.querySelector("#nameInput");
+const nameList = document.querySelector("#nameList");
 const message = document.querySelector("#message");
 const tablesEl = document.querySelector("#tables");
 const totalCountEl = document.querySelector("#totalCount");
@@ -65,6 +117,19 @@ function saveState() {
 
 function unitById(unitId) {
   return units.find((unit) => unit.id === unitId);
+}
+
+function normalizeName(name) {
+  return name.replace(/\s+/g, "");
+}
+
+function rosterPersonByName(name) {
+  const normalized = normalizeName(name);
+  return officialRoster.find((person) => normalizeName(person.name) === normalized);
+}
+
+function fixedLeaderForTable(tableId) {
+  return officialRoster.find((person) => person.preferredTableId === tableId);
 }
 
 function shuffle(items) {
@@ -97,14 +162,36 @@ function buildTableStats(people = state.people) {
   return stats;
 }
 
-function firstFreeSeat(table) {
-  return seatSlots.findIndex((_, index) => !table.usedSeats.has(index));
+function firstFreeSeat(table, person, people = state.people) {
+  const leader = fixedLeaderForTable(table.tableId);
+  const shouldReserveTopSeat =
+    leader &&
+    !people.some((drawnPerson) => drawnPerson.name === leader.name) &&
+    person.name !== leader.name;
+
+  return seatSlots.findIndex((_, index) => {
+    if (shouldReserveTopSeat && index === 0) return false;
+    return !table.usedSeats.has(index);
+  });
 }
 
 function assignSingle(person, people = state.people) {
   const stats = buildTableStats(people);
+  if (person.preferredTableId) {
+    const fixedTable = stats[person.preferredTableId - 1];
+    const seatIndex = !fixedTable.usedSeats.has(0) ? 0 : firstFreeSeat(fixedTable, person, people);
+    if (fixedTable.total < SEATS_PER_TABLE && fixedTable.byUnit[person.unit] < 3 && seatIndex !== -1) {
+      return { ...person, tableId: fixedTable.tableId, seatIndex };
+    }
+  }
+
   const candidates = stats
-    .filter((table) => table.total < SEATS_PER_TABLE && table.byUnit[person.unit] < 3)
+    .filter(
+      (table) =>
+        table.total < SEATS_PER_TABLE &&
+        table.byUnit[person.unit] < 3 &&
+        firstFreeSeat(table, person, people) !== -1,
+    )
     .map((table) => ({
       table,
       score:
@@ -117,7 +204,7 @@ function assignSingle(person, people = state.people) {
   if (!candidates.length) return null;
 
   const picked = candidates[0].table;
-  const seatIndex = firstFreeSeat(picked);
+  const seatIndex = firstFreeSeat(picked, person, people);
   return { ...person, tableId: picked.tableId, seatIndex };
 }
 
@@ -171,10 +258,20 @@ function assignByStrictQuotas(people) {
   if (!quotas) return null;
 
   const assigned = [];
-  const seatsByTable = Array.from({ length: TABLE_COUNT }, () => shuffle([...Array(SEATS_PER_TABLE).keys()]));
+  const seatsByTable = Array.from({ length: TABLE_COUNT }, () => shuffle([1, 2, 3, 4, 5, 6, 7]));
+  const fixedPeople = people.filter((person) => person.preferredTableId);
+
+  fixedPeople.forEach((person) => {
+    assigned.push({
+      ...person,
+      tableId: person.preferredTableId,
+      seatIndex: 0,
+    });
+    quotas[person.preferredTableId - 1][person.unit] -= 1;
+  });
 
   units.forEach((unit) => {
-    const peopleInUnit = shuffle(people.filter((person) => person.unit === unit.id));
+    const peopleInUnit = shuffle(people.filter((person) => person.unit === unit.id && !person.preferredTableId));
     let cursor = 0;
     quotas.forEach((tableQuota, tableIndex) => {
       for (let count = 0; count < tableQuota[unit.id]; count += 1) {
@@ -225,9 +322,9 @@ function setMessage(text, type = "") {
 }
 
 function statusText() {
-  if (state.people.length === 0) return "請輸入姓名與單位後抽籤，或先用快速排座位模擬。";
+  if (state.people.length === 0) return "請輸入姓名後抽籤，或先用快速排座位。";
   if (state.people.length < MAX_PEOPLE) {
-    return `已登記 ${state.people.length} 人。未滿 48 人時會先平均分散；滿 48 人且比例可行時，會套用每桌每單位 2-3 人規則。`;
+    return `已抽 ${state.people.length} 人。正式名單共 48 人，系統會依單位與主管組別分散座位。`;
   }
 
   if (!canUseStrictQuotas(state.people)) {
@@ -241,6 +338,7 @@ function render() {
   saveState();
   renderTables();
   renderStats();
+  renderNameList();
   setMessage(statusText(), state.people.length === MAX_PEOPLE && canUseStrictQuotas(state.people) ? "good" : "");
 }
 
@@ -346,13 +444,31 @@ function renderStats() {
     });
 }
 
+function renderNameList() {
+  const drawnNames = new Set(state.people.map((person) => person.name));
+  nameList.innerHTML = "";
+  officialRoster
+    .filter((person) => !drawnNames.has(person.name))
+    .forEach((person) => {
+      const option = document.createElement("option");
+      option.value = person.name;
+      nameList.appendChild(option);
+    });
+}
+
 drawForm.addEventListener("submit", (event) => {
   event.preventDefault();
   const name = nameInput.value.trim();
-  const unit = new FormData(drawForm).get("unit");
+  const rosterPerson = rosterPersonByName(name);
 
   if (!name) {
     setMessage("請先輸入姓名。", "warn");
+    nameInput.focus();
+    return;
+  }
+
+  if (!rosterPerson) {
+    setMessage("正式名單中找不到這個姓名，請確認是否輸入完整姓名。", "warn");
     nameInput.focus();
     return;
   }
@@ -362,15 +478,14 @@ drawForm.addEventListener("submit", (event) => {
     return;
   }
 
-  if (state.people.some((person) => person.name === name)) {
+  if (state.people.some((person) => person.name === rosterPerson.name)) {
     setMessage("這個姓名已經抽過籤。", "warn");
     return;
   }
 
   const person = {
-    id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
-    name,
-    unit,
+    id: `official-${rosterPerson.name}`,
+    ...rosterPerson,
     tableId: null,
     seatIndex: null,
   };
@@ -384,22 +499,19 @@ drawForm.addEventListener("submit", (event) => {
   state.people.push(assigned);
   nameInput.value = "";
   render();
-  setMessage(`${name} 抽到第 ${assigned.tableId} 組。`, "good");
+  setMessage(`${assigned.name} 抽到第 ${assigned.tableId} 組。`, "good");
 });
 
 simulateBtn.addEventListener("click", () => {
-  const samplePeople = units.flatMap((unit) =>
-    Array.from({ length: 16 }, (_, index) => ({
-      id: `sample-${unit.id}-${index + 1}`,
-      name: `${unit.shortLabel}${String(index + 1).padStart(2, "0")}`,
-      unit: unit.id,
-      tableId: null,
-      seatIndex: null,
-    })),
-  );
-  state.people = assignRoster(samplePeople);
+  const rosterPeople = officialRoster.map((person) => ({
+    id: `official-${person.name}`,
+    ...person,
+    tableId: null,
+    seatIndex: null,
+  }));
+  state.people = assignRoster(rosterPeople);
   render();
-  setMessage("已建立 48 人模擬名單並完成排座。", "good");
+  setMessage("已用正式名單完成 48 人快速排座。", "good");
 });
 
 rerollBtn.addEventListener("click", () => {
