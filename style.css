@@ -428,10 +428,10 @@ h1 {
     "left table right"
     ". bottom .";
   grid-template-columns: 96px minmax(148px, 178px) 96px;
-  grid-template-rows: 38px minmax(0, 1fr) 38px;
+  grid-template-rows: 38px minmax(0, 1fr) 54px;
   justify-content: center;
   align-items: center;
-  gap: 6px 10px;
+  gap: 10px 10px;
   min-height: 0;
 }
 
@@ -456,6 +456,7 @@ h1 {
 .seat.single.bottom {
   grid-area: bottom;
   justify-self: center;
+  margin-top: 4px;
 }
 
 .table-box {
@@ -571,6 +572,7 @@ h1 {
 .table-note {
   justify-self: start;
   align-self: end;
+  margin-bottom: 4px;
   padding: 4px 8px;
   border: 1px solid rgba(40, 111, 108, 0.28);
   border-radius: 999px;
@@ -635,8 +637,8 @@ h1 {
 
   .table-card {
     grid-template-columns: 76px minmax(108px, 136px) 76px;
-    grid-template-rows: 36px 204px 36px;
-    gap: 7px;
+    grid-template-rows: 36px 204px 48px;
+    gap: 9px 7px;
     min-height: 304px;
   }
 
