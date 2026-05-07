@@ -76,9 +76,9 @@ button:hover {
     "picker"
     "actions";
   gap: 10px;
-  width: min(440px, 28vw);
-  min-width: 360px;
-  padding: 12px;
+  width: min(720px, 44vw);
+  min-width: 620px;
+  padding: 14px;
   transform: translate(-50%, -50%);
   overflow: visible;
   border: 1px solid var(--line);
@@ -212,7 +212,7 @@ h1 {
   grid-area: picker;
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 8px;
+  gap: 10px;
 }
 
 .picker-group {
@@ -245,19 +245,22 @@ h1 {
 }
 
 .picker-list {
-  display: grid;
-  gap: 4px;
-  max-height: 148px;
-  overflow: auto;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  max-height: none;
+  overflow: visible;
 }
 
 .picker-name {
-  min-height: 28px;
-  padding: 3px 5px;
+  flex: 1 1 54px;
+  min-width: 54px;
+  min-height: 26px;
+  padding: 3px 4px;
   border-color: rgba(32, 33, 36, 0.18);
   border-radius: 6px;
   background: rgba(255, 255, 255, 0.72);
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 800;
 }
 
