@@ -1,7 +1,7 @@
-const STORAGE_KEY = "crc-seat-draw-state-v3";
-const TABLE_COUNT = 6;
-const SEATS_PER_TABLE = 8;
-const MAX_PEOPLE = TABLE_COUNT * SEATS_PER_TABLE;
+const STORAGE_KEY = "crc-seat-draw-state-v4";
+const TABLE_CAPACITIES = [8, 8, 8, 8, 8, 9];
+const TABLE_COUNT = TABLE_CAPACITIES.length;
+const MAX_PEOPLE = TABLE_CAPACITIES.reduce((total, capacity) => total + capacity, 0);
 const QUICK_DRAW_DELAY_MS = 90;
 
 const units = [
@@ -69,6 +69,7 @@ const officialRoster = [
   { name: "李鳳翎", unit: "foundation" },
   { name: "徐銘澤", unit: "foundation" },
   { name: "吳秉熹", unit: "foundation" },
+  { name: "陳淑錡", unit: "foundation" },
   { name: "林港博", unit: "foundation" },
   { name: "劉春燕", unit: "foundation" },
   { name: "陸廷瑋", unit: "foundation" },
@@ -85,6 +86,7 @@ const seatSlots = [
   { key: "right-2", area: "right" },
   { key: "right-3", area: "right" },
   { key: "bottom", area: "bottom" },
+  { key: "left-4", area: "left" },
 ];
 
 const drawForm = document.querySelector("#drawForm");
@@ -147,6 +149,14 @@ function fixedLeaderForTable(tableId) {
   return officialRoster.find((person) => person.preferredTableId === tableId);
 }
 
+function capacityForTable(tableId) {
+  return TABLE_CAPACITIES[tableId - 1];
+}
+
+function seatIndicesForTable(tableId) {
+  return Array.from({ length: capacityForTable(tableId) }, (_, index) => index);
+}
+
 function shuffle(items) {
   const next = [...items];
   for (let index = next.length - 1; index > 0; index -= 1) {
@@ -159,6 +169,7 @@ function shuffle(items) {
 function emptyTableStats() {
   return Array.from({ length: TABLE_COUNT }, (_, tableIndex) => ({
     tableId: tableIndex + 1,
+    capacity: capacityForTable(tableIndex + 1),
     total: 0,
     byUnit: Object.fromEntries(units.map((unit) => [unit.id, 0])),
     usedSeats: new Set(),
@@ -184,10 +195,11 @@ function firstFreeSeat(table, person, people = state.people) {
     !people.some((drawnPerson) => drawnPerson.name === leader.name) &&
     person.name !== leader.name;
 
-  return seatSlots.findIndex((_, index) => {
+  const seatIndex = seatIndicesForTable(table.tableId).find((index) => {
     if (shouldReserveTopSeat && index === 0) return false;
     return !table.usedSeats.has(index);
   });
+  return seatIndex ?? -1;
 }
 
 function assignSingle(person, people = state.people) {
@@ -195,7 +207,7 @@ function assignSingle(person, people = state.people) {
   if (person.preferredTableId) {
     const fixedTable = stats[person.preferredTableId - 1];
     const seatIndex = !fixedTable.usedSeats.has(0) ? 0 : firstFreeSeat(fixedTable, person, people);
-    if (fixedTable.total < SEATS_PER_TABLE && fixedTable.byUnit[person.unit] < 3 && seatIndex !== -1) {
+    if (fixedTable.total < fixedTable.capacity && fixedTable.byUnit[person.unit] < 3 && seatIndex !== -1) {
       return { ...person, tableId: fixedTable.tableId, seatIndex };
     }
   }
@@ -203,7 +215,7 @@ function assignSingle(person, people = state.people) {
   const candidates = stats
     .filter(
       (table) =>
-        table.total < SEATS_PER_TABLE &&
+        table.total < table.capacity &&
         table.byUnit[person.unit] < 3 &&
         firstFreeSeat(table, person, people) !== -1,
     )
@@ -232,6 +244,8 @@ function canUseStrictQuotas(people) {
 }
 
 function buildStrictQuotas(people) {
+  const extraTargets = TABLE_CAPACITIES.map((capacity) => capacity - units.length * 2);
+
   for (let attempt = 0; attempt < 500; attempt += 1) {
     const quotas = Array.from({ length: TABLE_COUNT }, () =>
       Object.fromEntries(units.map((unit) => [unit.id, 2])),
@@ -250,7 +264,7 @@ function buildStrictQuotas(people) {
         (a, b) => tableExtras[a].size - tableExtras[b].size,
       );
       const tableIndex = tableOrder.find(
-        (index) => tableExtras[index].size < 2 && !tableExtras[index].has(unitId),
+        (index) => tableExtras[index].size < extraTargets[index] && !tableExtras[index].has(unitId),
       );
 
       if (tableIndex === undefined) {
@@ -262,7 +276,7 @@ function buildStrictQuotas(people) {
       quotas[tableIndex][unitId] += 1;
     }
 
-    if (valid && tableExtras.every((set) => set.size === 2)) return quotas;
+    if (valid && tableExtras.every((set, index) => set.size === extraTargets[index])) return quotas;
   }
 
   return null;
@@ -273,7 +287,9 @@ function assignByStrictQuotas(people) {
   if (!quotas) return null;
 
   const assigned = [];
-  const seatsByTable = Array.from({ length: TABLE_COUNT }, () => shuffle([1, 2, 3, 4, 5, 6, 7]));
+  const seatsByTable = Array.from({ length: TABLE_COUNT }, (_, tableIndex) =>
+    shuffle(seatIndicesForTable(tableIndex + 1).filter((seatIndex) => seatIndex !== 0)),
+  );
   const fixedPeople = people.filter((person) => person.preferredTableId);
 
   fixedPeople.forEach((person) => {
@@ -339,14 +355,14 @@ function setMessage(text, type = "") {
 function statusText() {
   if (state.people.length === 0) return "請輸入姓名後抽籤，或先用快速排座位。";
   if (state.people.length < MAX_PEOPLE) {
-    return `已抽 ${state.people.length} 人。正式名單共 48 人，系統會依單位與主管組別分散座位。`;
+    return `已抽 ${state.people.length} 人。正式名單共 ${MAX_PEOPLE} 人，系統會依單位與主管組別分散座位。`;
   }
 
   if (!canUseStrictQuotas(state.people)) {
-    return "目前已滿 48 人，但三個單位的人數需各在 12-18 人之間，才能保證每桌每單位 2-3 人。";
+    return "目前已滿，但三個單位的人數需各在 12-18 人之間，才能保證每桌每單位 2-3 人。";
   }
 
-  return "已完成 48 人排座，每桌每單位皆為 2-3 人。";
+  return `已完成 ${MAX_PEOPLE} 人排座，每桌每單位皆為 2-3 人。`;
 }
 
 function render() {
@@ -376,12 +392,13 @@ function renderTables() {
     const leftStack = document.createElement("div");
     leftStack.className = "seat-stack left";
     [1, 2, 3].forEach((seatIndex) => leftStack.appendChild(createSeat(bySeat.get(seatIndex), seatIndex)));
+    if (table.capacity > 8) leftStack.appendChild(createSeat(bySeat.get(8), 8));
     card.appendChild(leftStack);
 
     const tableBox = document.createElement("div");
     tableBox.className = "table-box";
     tableBox.innerHTML = `
-      <div class="table-title"><span>第 ${table.tableId} 組</span><span>${table.total}/${SEATS_PER_TABLE}</span></div>
+      <div class="table-title"><span>第 ${table.tableId} 組</span><span>${table.total}/${table.capacity}</span></div>
       <div class="table-summary">
         ${units
           .map(
@@ -394,7 +411,7 @@ function renderTables() {
           )
           .join("")}
       </div>
-      <div class="table-note">每組 8 人</div>
+      <div class="table-note">本組 ${table.capacity} 人</div>
     `;
     card.appendChild(tableBox);
 
@@ -443,11 +460,8 @@ function renderStats() {
 
   rosterEl.innerHTML = "";
   state.people
-    .slice()
-    .sort((a, b) => {
-      if ((a.tableId || 99) !== (b.tableId || 99)) return (a.tableId || 99) - (b.tableId || 99);
-      return (a.seatIndex || 0) - (b.seatIndex || 0);
-    })
+    .slice(-5)
+    .reverse()
     .forEach((person) => {
       const unit = unitById(person.unit);
       const item = document.createElement("div");
@@ -491,7 +505,7 @@ drawForm.addEventListener("submit", (event) => {
   }
 
   if (state.people.length >= MAX_PEOPLE) {
-    setMessage("座位已滿 48 人，請先移除或清空資料。", "warn");
+    setMessage(`座位已滿 ${MAX_PEOPLE} 人，請先移除或清空資料。`, "warn");
     return;
   }
 
@@ -550,7 +564,7 @@ simulateBtn.addEventListener("click", async () => {
   setControlsDisabled(false);
   latestDrawnId = null;
   render();
-  setMessage("已完成 48 人快速抽籤排座。", "good");
+  setMessage(`已完成 ${MAX_PEOPLE} 人快速抽籤排座。`, "good");
 });
 
 rerollBtn.addEventListener("click", () => {
