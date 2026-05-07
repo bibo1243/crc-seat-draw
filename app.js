@@ -2,6 +2,7 @@ const STORAGE_KEY = "crc-seat-draw-state-v3";
 const TABLE_COUNT = 6;
 const SEATS_PER_TABLE = 8;
 const MAX_PEOPLE = TABLE_COUNT * SEATS_PER_TABLE;
+const QUICK_DRAW_DELAY_MS = 90;
 
 const units = [
   {
@@ -99,6 +100,8 @@ const rerollBtn = document.querySelector("#rerollBtn");
 const clearBtn = document.querySelector("#clearBtn");
 
 let state = loadState();
+let isAnimating = false;
+let latestDrawnId = null;
 
 function loadState() {
   try {
@@ -113,6 +116,18 @@ function loadState() {
 
 function saveState() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+}
+
+function sleep(ms) {
+  return new Promise((resolve) => window.setTimeout(resolve, ms));
+}
+
+function setControlsDisabled(disabled) {
+  nameInput.disabled = disabled;
+  simulateBtn.disabled = disabled;
+  rerollBtn.disabled = disabled;
+  clearBtn.disabled = disabled;
+  drawForm.querySelector(".primary-action").disabled = disabled;
 }
 
 function unitById(unitId) {
@@ -408,6 +423,7 @@ function createSeat(person, seatIndex, single = false) {
 
   const unit = unitById(person.unit);
   seat.classList.add("filled", unit.className);
+  if (person.id === latestDrawnId) seat.classList.add("latest");
   seat.textContent = person.name;
   seat.title = `${person.name} - ${unit.label}`;
   return seat;
@@ -458,6 +474,7 @@ function renderNameList() {
 
 drawForm.addEventListener("submit", (event) => {
   event.preventDefault();
+  if (isAnimating) return;
   const name = nameInput.value.trim();
   const rosterPerson = rosterPersonByName(name);
 
@@ -497,24 +514,47 @@ drawForm.addEventListener("submit", (event) => {
   }
 
   state.people.push(assigned);
+  latestDrawnId = assigned.id;
   nameInput.value = "";
   render();
   setMessage(`${assigned.name} 抽到第 ${assigned.tableId} 組。`, "good");
 });
 
-simulateBtn.addEventListener("click", () => {
+simulateBtn.addEventListener("click", async () => {
+  if (isAnimating) return;
   const rosterPeople = officialRoster.map((person) => ({
     id: `official-${person.name}`,
     ...person,
     tableId: null,
     seatIndex: null,
   }));
-  state.people = assignRoster(rosterPeople);
+  const assignedRoster = assignRoster(rosterPeople);
+  const drawOrder = shuffle(assignedRoster);
+
+  isAnimating = true;
+  setControlsDisabled(true);
+  state.people = [];
+  latestDrawnId = null;
   render();
-  setMessage("已用正式名單完成 48 人快速排座。", "good");
+  setMessage("快速抽籤開始。", "good");
+
+  for (const [index, person] of drawOrder.entries()) {
+    state.people.push(person);
+    latestDrawnId = person.id;
+    render();
+    setMessage(`${index + 1}/${MAX_PEOPLE} ${person.name} 抽到第 ${person.tableId} 組。`, "good");
+    await sleep(QUICK_DRAW_DELAY_MS);
+  }
+
+  isAnimating = false;
+  setControlsDisabled(false);
+  latestDrawnId = null;
+  render();
+  setMessage("已完成 48 人快速抽籤排座。", "good");
 });
 
 rerollBtn.addEventListener("click", () => {
+  if (isAnimating) return;
   if (!state.people.length) {
     setMessage("目前沒有名單可以重新抽籤。", "warn");
     return;
@@ -525,6 +565,7 @@ rerollBtn.addEventListener("click", () => {
 });
 
 clearBtn.addEventListener("click", () => {
+  if (isAnimating) return;
   if (!state.people.length) return;
   const confirmed = window.confirm("確定要清空目前所有抽籤資料？");
   if (!confirmed) return;
@@ -533,6 +574,7 @@ clearBtn.addEventListener("click", () => {
 });
 
 rosterEl.addEventListener("click", (event) => {
+  if (isAnimating) return;
   const button = event.target.closest("[data-remove]");
   if (!button) return;
   state.people = state.people.filter((person) => person.id !== button.dataset.remove);
