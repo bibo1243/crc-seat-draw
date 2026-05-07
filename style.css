@@ -76,9 +76,9 @@ button:hover {
     "picker"
     "actions";
   gap: 10px;
-  width: min(440px, 28vw);
-  min-width: 360px;
-  padding: 12px;
+  width: min(560px, 34vw);
+  min-width: 480px;
+  padding: 18px;
   transform: translate(-50%, -50%);
   overflow: visible;
   border: 1px solid var(--line);
@@ -88,14 +88,7 @@ button:hover {
 }
 
 .visually-hidden {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  white-space: nowrap;
-  border: 0;
+  display: none;
 }
 
 .title-block {
@@ -107,34 +100,35 @@ button:hover {
 .eyebrow {
   margin: 0;
   color: var(--accent-dark);
-  font-size: 13px;
+  font-size: 16px;
   font-weight: 700;
 }
 
 h1 {
   margin: 0;
-  font-size: 24px;
+  font-size: 34px;
   letter-spacing: 0;
 }
 
 .draw-form {
   display: grid;
   grid-area: form;
-  grid-template-columns: minmax(170px, 1fr) 92px;
-  gap: 10px;
+  grid-template-columns: minmax(220px, 1fr) 120px;
+  gap: 14px;
   align-items: end;
 }
 
 .field {
   display: grid;
-  gap: 8px;
+  gap: 10px;
   font-weight: 700;
+  font-size: 18px;
 }
 
 .field input {
   width: 100%;
-  min-height: 42px;
-  padding: 0 12px;
+  min-height: 56px;
+  padding: 0 16px;
   border: 1px solid var(--line);
   border-radius: 8px;
   background: #fff;
@@ -177,6 +171,8 @@ h1 {
   border-color: var(--accent);
   background: var(--accent);
   color: #fff;
+  min-height: 56px;
+  font-size: 20px;
   font-weight: 800;
 }
 
@@ -217,14 +213,14 @@ h1 {
 .picker-tabs {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 6px;
+  gap: 8px;
 }
 
 .picker-tab {
-  min-height: 34px;
-  padding: 4px 5px;
+  min-height: 50px;
+  padding: 6px 8px;
   border-radius: 7px;
-  font-size: 13px;
+  font-size: 18px;
   font-weight: 900;
 }
 
@@ -248,7 +244,7 @@ h1 {
 .picker-group {
   display: grid;
   gap: 6px;
-  padding: 8px;
+  padding: 12px;
   border-radius: 8px;
 }
 
@@ -268,35 +264,49 @@ h1 {
   display: flex;
   justify-content: space-between;
   gap: 8px;
-  font-size: 13px;
+  font-size: 17px;
   font-weight: 800;
 }
 
 .picker-list {
   display: flex;
   flex-wrap: wrap;
-  gap: 5px;
+  gap: 8px;
   max-height: none;
   overflow: visible;
 }
 
 .picker-name {
-  flex: 1 1 54px;
-  min-width: 54px;
-  min-height: 26px;
-  padding: 3px 4px;
+  flex: 1 1 86px;
+  min-width: 86px;
+  min-height: 40px;
+  padding: 5px 8px;
   border-color: rgba(32, 33, 36, 0.18);
   border-radius: 6px;
   background: rgba(255, 255, 255, 0.72);
-  font-size: 12px;
+  font-size: 16px;
   font-weight: 800;
 }
 
 .action-grid {
   display: grid;
   grid-area: actions;
-  grid-template-columns: repeat(3, minmax(82px, 1fr));
-  gap: 6px;
+  position: fixed;
+  right: 18px;
+  bottom: 18px;
+  z-index: 8;
+  grid-template-columns: 1fr;
+  gap: 8px;
+  width: 132px;
+}
+
+.action-grid button {
+  min-height: 42px;
+  padding: 4px 8px;
+  background: rgba(255, 253, 248, 0.92);
+  box-shadow: 0 4px 14px rgba(32, 33, 36, 0.12);
+  font-size: 14px;
+  font-weight: 800;
 }
 
 .stats-panel {
