@@ -93,6 +93,7 @@ const drawForm = document.querySelector("#drawForm");
 const nameInput = document.querySelector("#nameInput");
 const nameList = document.querySelector("#nameList");
 const message = document.querySelector("#message");
+const rosterPicker = document.querySelector("#rosterPicker");
 const tablesEl = document.querySelector("#tables");
 const totalCountEl = document.querySelector("#totalCount");
 const unitCountsEl = document.querySelector("#unitCounts");
@@ -444,6 +445,7 @@ function render() {
   renderTables();
   renderStats();
   renderNameList();
+  renderRosterPicker();
   setMessage(statusText(), state.people.length === MAX_PEOPLE && canUseStrictQuotas(state.people) ? "good" : "");
 }
 
@@ -562,6 +564,43 @@ function renderNameList() {
       nameList.appendChild(option);
     });
 }
+
+function renderRosterPicker() {
+  const drawnNames = new Set(state.people.map((person) => person.name));
+  rosterPicker.innerHTML = "";
+
+  units.forEach((unit) => {
+    const people = officialRoster.filter((person) => person.unit === unit.id && !drawnNames.has(person.name));
+    const group = document.createElement("section");
+    group.className = `picker-group ${unit.className}`;
+    group.innerHTML = `
+      <div class="picker-head">
+        <span>${unit.label}</span>
+        <strong>${people.length}</strong>
+      </div>
+      <div class="picker-list"></div>
+    `;
+
+    const list = group.querySelector(".picker-list");
+    people.forEach((person) => {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "picker-name";
+      button.dataset.name = person.name;
+      button.textContent = person.name;
+      list.appendChild(button);
+    });
+
+    rosterPicker.appendChild(group);
+  });
+}
+
+rosterPicker.addEventListener("click", (event) => {
+  const button = event.target.closest("[data-name]");
+  if (!button || isAnimating) return;
+  nameInput.value = button.dataset.name;
+  nameInput.focus();
+});
 
 drawForm.addEventListener("submit", (event) => {
   event.preventDefault();

@@ -73,7 +73,7 @@ button:hover {
   grid-template-areas:
     "title"
     "form"
-    "message"
+    "picker"
     "actions";
   gap: 10px;
   width: min(440px, 28vw);
@@ -85,6 +85,17 @@ button:hover {
   border-radius: 8px;
   background: var(--panel);
   box-shadow: 0 10px 30px rgba(32, 33, 36, 0.12);
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 .title-block {
@@ -195,6 +206,59 @@ h1 {
   border-color: rgba(163, 102, 24, 0.35);
   background: #fff4df;
   color: #744610;
+}
+
+.roster-picker {
+  grid-area: picker;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.picker-group {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 6px;
+  min-height: 0;
+  padding: 8px;
+  border-radius: 8px;
+}
+
+.picker-group.erjia {
+  background: var(--erjia-soft);
+}
+
+.picker-group.shaojia {
+  background: var(--shaojia-soft);
+}
+
+.picker-group.foundation {
+  background: var(--foundation-soft);
+}
+
+.picker-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.picker-list {
+  display: grid;
+  gap: 4px;
+  max-height: 148px;
+  overflow: auto;
+}
+
+.picker-name {
+  min-height: 28px;
+  padding: 3px 5px;
+  border-color: rgba(32, 33, 36, 0.18);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.72);
+  font-size: 13px;
+  font-weight: 800;
 }
 
 .action-grid {
@@ -435,17 +499,24 @@ h1 {
 }
 
 .seat.latest {
-  animation: draw-pop 420ms ease-out;
-  outline: 3px solid rgba(40, 111, 108, 0.3);
+  position: relative;
+  z-index: 4;
+  animation: draw-pop 980ms ease-out;
+  outline: 5px solid rgba(40, 111, 108, 0.42);
+  outline-offset: 3px;
 }
 
 @keyframes draw-pop {
   0% {
-    transform: scale(0.78);
+    transform: scale(0.7);
   }
 
-  55% {
-    transform: scale(1.12);
+  45% {
+    transform: scale(1.34);
+  }
+
+  72% {
+    transform: scale(1.2);
   }
 
   100% {
@@ -454,8 +525,15 @@ h1 {
 }
 
 .table-note {
-  color: var(--muted);
+  justify-self: start;
+  align-self: end;
+  padding: 4px 8px;
+  border: 1px solid rgba(40, 111, 108, 0.28);
+  border-radius: 999px;
+  background: #edf7f4;
+  color: var(--accent-dark);
   font-size: 13px;
+  font-weight: 900;
 }
 
 @media (max-width: 980px) {
@@ -470,7 +548,7 @@ h1 {
     grid-template-areas:
       "title"
       "form"
-      "message"
+      "picker"
       "actions";
     align-items: stretch;
     width: 100%;
@@ -485,6 +563,10 @@ h1 {
 
   .tables-grid {
     grid-template-rows: none;
+  }
+
+  .roster-picker {
+    grid-template-columns: 1fr;
   }
 }
 
