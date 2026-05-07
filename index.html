@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CRC 座位抽籤</title>
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <section class="control-panel" aria-label="抽籤控制面板">
+        <div class="title-block">
+          <p class="eyebrow">115.05.08 CRC</p>
+          <h1>座位抽籤</h1>
+        </div>
+
+        <form id="drawForm" class="draw-form">
+          <label class="field">
+            <span>姓名</span>
+            <input id="nameInput" type="text" autocomplete="name" placeholder="輸入夥伴姓名" />
+          </label>
+
+          <fieldset class="unit-picker">
+            <legend>單位</legend>
+            <label class="unit-option erjia">
+              <input type="radio" name="unit" value="erjia" checked />
+              <span>兒家教保組</span>
+            </label>
+            <label class="unit-option shaojia">
+              <input type="radio" name="unit" value="shaojia" />
+              <span>少家教保組</span>
+            </label>
+            <label class="unit-option foundation">
+              <input type="radio" name="unit" value="foundation" />
+              <span>基金會+諮商所</span>
+            </label>
+          </fieldset>
+
+          <button class="primary-action" type="submit">抽籤</button>
+        </form>
+
+        <div id="message" class="message" role="status" aria-live="polite"></div>
+
+        <div class="action-grid">
+          <button id="simulateBtn" type="button">快速排座位</button>
+          <button id="rerollBtn" type="button">重新抽籤全部</button>
+          <button id="clearBtn" type="button">清空資料</button>
+        </div>
+
+        <section class="stats-panel" aria-label="目前人數">
+          <div class="stats-head">
+            <span>目前名單</span>
+            <strong id="totalCount">0 / 48</strong>
+          </div>
+          <div class="unit-counts" id="unitCounts"></div>
+          <div class="roster" id="roster"></div>
+        </section>
+      </section>
+
+      <section class="seating-area" aria-label="座位圖">
+        <div class="front-table">
+          <span>主持 / 前方</span>
+        </div>
+        <div id="tables" class="tables-grid"></div>
+      </section>
+    </main>
+
+    <script src="./app.js"></script>
+  </body>
+</html>
