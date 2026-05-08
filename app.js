@@ -68,7 +68,7 @@ const officialRoster = [
   { name: "熊小蓮", unit: "foundation" },
   { name: "李鳳翎", unit: "foundation" },
   { name: "徐銘澤", unit: "foundation" },
-  { name: "吳秉熹", unit: "foundation" },
+  { name: "吳秉熹", unit: "shaojia" },
   { name: "陳淑錡", unit: "foundation" },
   { name: "林港博", unit: "foundation" },
   { name: "劉春燕", unit: "foundation" },
@@ -112,7 +112,21 @@ function loadState() {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (!saved) return { people: [] };
     const parsed = JSON.parse(saved);
-    return { people: Array.isArray(parsed.people) ? parsed.people : [] };
+    const people = Array.isArray(parsed.people) ? parsed.people : [];
+    return {
+      people: people.map((person) => {
+        if (!person || person.isTemporary) return person;
+        const rosterPerson = officialRoster.find(
+          (officialPerson) => normalizeName(officialPerson.name) === normalizeName(person.name),
+        );
+        if (!rosterPerson) return person;
+        return {
+          ...person,
+          unit: rosterPerson.unit,
+          preferredTableId: rosterPerson.preferredTableId,
+        };
+      }),
+    };
   } catch {
     return { people: [] };
   }
